@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
 from make_result import main
-
+from tkinter import messagebox
 
 class GUI():
     def __init__(self) -> None:
@@ -11,6 +11,7 @@ class GUI():
         self.fang_var = tk.StringVar()
         self.fu_var = tk.StringVar()
         self.validate_var = tk.StringVar()
+        self.progress_lable_var = tk.StringVar()
         self.root.title("放线验收数据程序")
         self.root.configure(bg="skyblue")
         self.root.minsize(200, 200)  # width, height
@@ -23,7 +24,7 @@ class GUI():
         fang_label.grid(row=0, column=0)
         self.fang_entry = tk.Entry(fang_frame, bd=3, width=50, textvariable=self.fang_var)
         self.fang_entry.grid(row=0, column=1)
-        choose_fang_dir = tk.Button(fang_frame, text="选择文件", 
+        choose_fang_dir = tk.Button(fang_frame, text="选择目录", 
                                     command=lambda: self.select_directory(self.fang_var))
         choose_fang_dir.grid(row=0, column=2)
         # 设置第二行验收路径的label, entry, button
@@ -46,15 +47,27 @@ class GUI():
         choose_validate = tk.Button(validate_frame, text="选择文件", 
                                     command=lambda: self.select_file(self.validate_var))
         choose_validate.grid(row=0, column=2)
-        # 设置第四行验收路径的label, entry, button
-        self.turn_on = tk.Button(self.root, text="开始执行", command=self.excute)
-        self.turn_on.grid(row=3)
+        # 设置第四行执行
+        self.description_var = tk.StringVar()
+        excute_frame = tk.Frame(self.root, bg="#6FAFE7")
+        excute_frame.grid(row=3, column=0, padx=10, pady=10, sticky='nsew')
+        self.turn_on = tk.Button(excute_frame, text="开始执行", command=self.excute)
+        self.turn_on.grid(row=0, column=0)
+        self.description_label = tk.Label(excute_frame, bg="#6FAFE7", textvariable=self.description_var)
+        self.description_label.grid(row=0, column=1)
 
-        ## 进度条
+        ## 第5行的进度条
+        progress_fram = tk.Frame(self.root, bg="#6FAFE7")
+        progress_fram.grid(row=4, column=0, padx=10, pady=10, sticky='nsew')
         self.progress_var = tk.IntVar()
-        self.progressbar = ttk.Progressbar(self.root, orient="horizontal", length=300, mode="determinate", 
+        self.progressbar = ttk.Progressbar(progress_fram, orient="horizontal", length=400, mode="determinate", 
                                               variable=self.progress_var)
-        self.progressbar.grid(row=4)
+        self.progressbar["value"] = 0
+        self.progressbar["maximum"] = 100
+        self.pogress_label = tk.Label(progress_fram, text="进度", bg="#6FAFE7", textvariable=self.progress_lable_var)
+        self.progressbar.grid(row=0, column=0)
+        self.pogress_label.grid(row=0, column=1)
+        self.thread = threading.Thread(target=self.long_running_task,args=(), daemon=True)
     def mainloop(self):
         self.root.mainloop()
     def select_directory(self, stringvar):
@@ -70,18 +83,29 @@ class GUI():
         if file_path:
             stringvar.set(file_path)
     def excute(self):
-        print(self.fang_entry.get())
-        print(self.fu_entry.get())
-        print(self.validate_entry.get())
-        threading.Thread(target=self.long_running_task,args=(), daemon=True).start()
-    def update_progress(self, value):
+        self.thread.start()
+    def update_progress(self, value, description):
         self.progress_var.set(value)
+        self.progress_lable_var.set(f"{value : .2f}%")
+        self.description_var.set(description)
         self.root.update_idletasks() 
     def long_running_task(self):
         main(fang_dir=self.fang_entry.get(), 
              fu_dir=self.fu_entry.get(), 
              validate_xls=self.validate_entry.get(),
              progress_callback=self.update_progress)
+        self.on_success()
+    def on_success(self):
+        self.description_var.set("")
+        self.progress_var.set(0)
+        messagebox.showinfo("成功", "操作成功！")
+        
+        # callback_test(progress_callback=self.update_progress)
+# def callback_test(progress_callback=None):
+#     it = range(0, 200)
+#     for i in it:
+#         progress_callback((i + 1) / len(it) * 100, description="放线放线放线放线放线放线放线放线")
+#         time.sleep(1)
         
 if __name__ == '__main__':
     gui = GUI()

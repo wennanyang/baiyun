@@ -3,7 +3,6 @@ import os
 import glob
 import shutil
 from openpyxl import load_workbook
-from tqdm import tqdm
 import traceback
 import xlrd3 as xlrd
 from utils import check_dir, check_file, find_match_files_recursion, ignore_hidden_files
@@ -43,7 +42,7 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     exp_count = 0
     tech_check_re = r"^[^~]*技术审查.*\.xls[x]?$"
     achieve_re = r'^[^~]*成果.*\.doc'
-    for i , project in tqdm(enumerate(project_dir), total=len(project_dir)):
+    for i , project in enumerate(project_dir):
         tech_check_list = find_match_files_recursion(project, tech_check_re)
         buildings_high = ""
         ## 该循环下的异常数，如果为0，说明顺利完成
@@ -93,7 +92,8 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
             exception_check_project_set.add(project)
         ## 回调函数，设置进度条
         if progress_callback is not None:
-            progress_callback((i + 1) / len(project_dir))
+            progress_callback((i + 1) / len(project_dir) * 100, 
+                              description="正在提取验收属性")
     copy_filename_list = exception_doc_list + exception_xls_list + empty_xls_list
     if len(copy_filename_list) > 0:
         with open(copy_filename, 'w+') as f:
@@ -122,8 +122,6 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
             print(e)
     for exception_project in exception_check_project_set:
         try:
-            print(exception_check_dir)
-            print(exception_check_project_set)
             shutil.copytree(exception_project, 
                             os.path.join(exception_check_dir, os.path.basename(exception_project)),
                             ignore=ignore_hidden_files,
@@ -133,7 +131,7 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     wb.save(save_name)
     return project_fu_list
 
-def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="放线数据汇总", save_name= "放线数据汇总.xlsx",
+def make_fang_result(fang_dir, exp_dir_name="放线提取异常的xls",sheet_name="放线数据汇总", save_name= "放线数据汇总.xlsx",
                     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
                        "建设工程规划许可证号","更新时间","备注"],
                     exception_filename='放线异常的文件列表.txt',
@@ -152,6 +150,7 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
     exp_count = 1
     project_fang_list = []
     os.makedirs(exception_fang_dir,exist_ok=True)  
+    exp_dir = check_dir(exp_dir_name)
     for i, excel_path in enumerate(excel_list):
         count = 0
         try:
@@ -174,7 +173,7 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
         if count == 0:
             project_fang_list.append(result[0])
         if progress_callback is not None:
-            progress_callback(i / len(excel_list) * 100)
+            progress_callback(i / len(excel_list) * 100, description="正在提取放线属性")
 
     wb.save(save_name)
     return project_fang_list
@@ -284,23 +283,20 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
     fuempty = '验收提取为空的xls'
     project_fang_list = []
     project_fu_list = []
-    if fang_dir is not None:
-        exp_fang_dir = check_dir(fangxls)
-        project_fang_list = make_fang_result(fang_dir=fang_dir, exp_dir=exp_fang_dir,
+    if fang_dir is not None and fang_dir != "":
+        project_fang_list = make_fang_result(fang_dir=fang_dir, exp_dir_name=fangxls,
                                              progress_callback=progress_callback)
-    if fu_dir is not None:
-        exp_xls_dir = check_dir(fuxls)
-        exp_doc_dir = check_dir(fudoc)
-        empty_xls_dir = check_dir(fuempty)
-        project_fu_list = make_fu_result(fu_dir=fu_dir, exp_xls_dir=exp_xls_dir, 
-                                         exp_doc_dir=exp_doc_dir, 
-                                         empty_xls_dir=empty_xls_dir,
+    if fu_dir is not None and fu_dir != "":
+        project_fu_list = make_fu_result(fu_dir=fu_dir, exp_xls_name=fuxls, 
+                                         exp_doc_name=fudoc, 
+                                         empty_xls_name=fuempty,
                                          progress_callback=progress_callback)
 
-    if validate_xls is not None:
+    if validate_xls is not None and validate_xls != "" :
         validate_project(path_xls=validate_xls, project_fu_list=project_fu_list, 
                         project_fang_list=project_fang_list, 
                         filtered_file_name="放线验收缺失的项目列表.txt")
 if __name__ == '__main__':
-    make_fu_result(fu_dir=r"F:\专题库\原数据\验收")
+    # make_fu_result(fu_dir=r"F:\专题库\原数据\验收")
+    main(fang_dir=r"F:\专题库\原数据\放线")
 
