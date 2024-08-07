@@ -302,6 +302,5 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
                         project_fang_list=project_fang_list, 
                         filtered_file_name="放线验收缺失的项目列表.txt")
 if __name__ == '__main__':
-
     make_fu_result(fu_dir=r"F:\专题库\原数据\验收")
 
