@@ -13,10 +13,10 @@ from tkinter import filedialog
 import threading
 from tkinter import ttk
 def check_dir(dir):
-    dir = os.path.join(os.getcwd(), dir)
+    dir = os.path.join('异常文件汇总', dir)
     if not os.path.exists(dir):
         os.makedirs(dir)
-        return
+        return dir
     shutil.rmtree(dir)
     os.makedirs(dir)
     return dir
@@ -33,10 +33,10 @@ def find_match_files_recursion(parent_dir, re_pattern):
     file_list = []
     for root, _, files in os.walk(parent_dir):
         for file in files:
-            if re.match(re_pattern, file) and file not in file_set:
+            if re.match(re_pattern, file) is not None and file not in file_set:
                 file_set.add(file)
                 file_list.append(os.path.join(root, file))
-    return file_set
+    return file_list
 def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收成果汇总表.xlsx",
                 title=["工程编号", "建筑结构", "建设单位", "建设项目名称", "建设位置", 	
                        "建设工程规划许可证号", "相关批文号", "放线案号", "建设规模", 
@@ -44,9 +44,10 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                         "地上面积(m2)", "地下面积(m2)", "地上层数", "地下层数", 
                         "主要功能", "建筑高度(m)", "更新时间", "备注"],
                 exception_filename='验收异常的文件列表.txt',
-                exp_doc_dir="验收提取异常的doc",
-                exp_xls_dir="验收提取异常的xls",
-                empty_xls_dir="验收提取为空的xls",
+                exp_doc_name="验收提取异常的doc",
+                exp_xls_name="验收提取异常的xls",
+                empty_xls_name="验收提取为空的xls",
+                exception_check_dir = "异常的验收项目",
                 progress_callback=None):
     check_file(save_name, sheet_name=sheet_name)
     copy_filename = "复制的文件名.txt"
@@ -54,6 +55,12 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
         os.remove(exception_filename)
     if os.path.exists(copy_filename):
         os.remove(copy_filename)
+    exp_doc_dir = check_dir(exp_doc_name)
+    exp_xls_dir = check_dir(exp_xls_name)
+    empty_xls_dir = check_dir(empty_xls_name)
+    exception_check_project_set = set()
+    
+    os.makedirs(exception_check_dir,exist_ok=True)
     project_dir = glob.glob(os.path.join(fu_dir, "*"))
     exception_doc_list = []
     exception_xls_list = []
@@ -63,10 +70,10 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     ws = wb[sheet_name]
     ws.append(title)
     exp_count = 0
-    tech_check_re = r"^[^~].*技术审查.*\.xls[x]?$"
-    achieve_re = r'^[^~].*成果.*\.doc'
-    for i , project in enumerate(project_dir):
-        tech_check_list = glob.glob(os.path.join(project, "*技术审查*.xls*"))
+    tech_check_re = r"^[^~]*技术审查.*\.xls[x]?$"
+    achieve_re = r'^[^~]*成果.*\.doc'
+    for i , project in tqdm(enumerate(project_dir), total=len(project_dir)):
+        tech_check_list = find_match_files_recursion(project, tech_check_re)
         buildings_high = ""
         for tech_check in tech_check_list:
             try:
@@ -83,10 +90,10 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                     f.write(f"{exp_count}'\t'{tech_check}'\n'{traceback.format_exc()}'\n'")
                     exp_count+=1
                 ## 将异常的文件挪出来
+                exception_check_project_set.add(project)
                 exception_xls_list.append(tech_check)
                 continue
-        docs = glob.glob(os.path.join(project, "*成果*.doc*"))
-        doc_list = [s for s in docs if not os.path.basename(s).startswith('~')]
+        doc_list = find_match_files_recursion(project, achieve_re)
         for doc_path in doc_list:
             count = 0
             try:
@@ -98,6 +105,7 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                     exp_count+=1
                 ## 将异常的文件挪出来
                 exception_doc_list.append(doc_path)
+                exception_check_project_set.add(project)
                 count += 1
                 continue
 
@@ -113,30 +121,33 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
             for item in copy_filename_list:
                 f.write(item + "\n")
 
-    for exception_doc in tqdm(exception_doc_list,desc="正在复制异常doc", total=len(exception_doc_list),
-                              unit="files"):   
+    for exception_doc in exception_doc_list:   
         copy_name = os.path.basename(os.path.dirname(exception_doc)) + '-' + os.path.basename(exception_doc)
         try:
             shutil.copy(exception_doc, os.path.join(exp_doc_dir, copy_name))
         except Exception as e:
             print(e)
             continue
-    for exception_xls in tqdm(exception_xls_list,desc="正在复制异常xls", total=len(exception_doc_list),
-                            unit="files"):   
+    for exception_xls in exception_xls_list:   
         copy_name = os.path.basename(os.path.dirname(exception_xls)) + '-' + os.path.basename(exception_xls)
         try:
             shutil.copy(exception_xls, os.path.join(exp_xls_dir, copy_name))
         except Exception as e:
             print(e)
             continue
-    for empty_xls in tqdm(empty_xls_list,desc="正在复制查找为空的xls", total=len(empty_xls_list),
-                              unit="files"):
+    for empty_xls in empty_xls_list:
         copy_name = os.path.basename(os.path.dirname(empty_xls)) + '-' + os.path.basename(empty_xls)
         try:
             shutil.copy(empty_xls, os.path.join(empty_xls_dir, copy_name))
         except Exception as e:
             print(e)
-
+    for exception_project in exception_check_project_set:
+        try:
+            print(exception_check_dir)
+            print(exception_check_project_set)
+            shutil.copytree(exception_project, os.path.join(exception_check_dir, os.path.basename(exception_project)))
+        except Exception as e:
+            print(e)   
     wb.save(save_name)
     return project_fu_list
 
@@ -144,6 +155,7 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
                     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
                        "建设工程规划许可证号","更新时间","备注"],
                     exception_filename='放线异常的文件列表.txt',
+                    exception_check_dir = "异常的放线项目",
                     progress_callback=None):
     check_file(save_name, sheet_name=sheet_name)  
     if os.path.exists(exception_filename):
@@ -156,7 +168,8 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
     ws.append(title)
     ws.title= sheet_name
     exp_count = 1
-    project_fang_list = []  
+    project_fang_list = []
+    os.makedirs(exception_check_dir,exist_ok=True)  
     for i, excel_path in enumerate(excel_list):
         count = 0
         try:
@@ -389,5 +402,9 @@ class GUI():
              validate_xls=self.validate_entry.get(),
              progress_callback=self.update_progress)
 if __name__ == '__main__':
-    gui = GUI()
-    gui.mainloop()
+    # gui = GUI()
+    # gui.mainloop()
+    # file_list =  find_match_files_recursion(r'F:\2023复23B059',r"^[^~]*技术审查.*\.xls[x]?$")
+    # print(file_list)
+    make_fu_result(fu_dir=r"F:\验收")
+
