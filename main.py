@@ -43,7 +43,7 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                        "基底面积(m2)", "住宅户数", "汽车泊位(个)", "总建筑面积(m2)", 
                         "地上面积(m2)", "地下面积(m2)", "地上层数", "地下层数", 
                         "主要功能", "建筑高度(m)", "更新时间", "备注"],
-                exception_filename='验收异常的文件列表.txt',
+                exception_filename='log.txt',
                 exp_doc_name="验收提取异常的doc",
                 exp_xls_name="验收提取异常的xls",
                 empty_xls_name="验收提取为空的xls",
@@ -69,12 +69,15 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     wb = load_workbook(save_name)
     ws = wb[sheet_name]
     ws.append(title)
+    ## 总的异常数
     exp_count = 0
     tech_check_re = r"^[^~]*技术审查.*\.xls[x]?$"
     achieve_re = r'^[^~]*成果.*\.doc'
     for i , project in tqdm(enumerate(project_dir), total=len(project_dir)):
         tech_check_list = find_match_files_recursion(project, tech_check_re)
         buildings_high = ""
+        ## 该循环下的异常数，如果为0，说明顺利完成
+        count = 0
         for tech_check in tech_check_list:
             try:
                 high = get_buildings_high(tech_check=tech_check)
@@ -88,14 +91,15 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                 ## 写入日志
                 with open(exception_filename, 'a', encoding='utf-8') as f:
                     f.write(f"{exp_count}'\t'{tech_check}'\n'{traceback.format_exc()}'\n'")
-                    exp_count+=1
+                    exp_count += 1
+                count += 1
                 ## 将异常的文件挪出来
                 exception_check_project_set.add(project)
                 exception_xls_list.append(tech_check)
                 continue
         doc_list = find_match_files_recursion(project, achieve_re)
         for doc_path in doc_list:
-            count = 0
+            
             try:
                 result = get_doc_result(doc_path=doc_path)
             except Exception as e:
@@ -110,9 +114,14 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
                 continue
 
             result[18] = buildings_high
+            ## 如果异常数为0，那么这个就是已经被提取完成的项目，加入完成项目的列表
             if count == 0:
                 project_fu_list.append(result[0])
             ws.append(result)
+        ## 如果审查或者成果表都为0，说明出现问题了，加入异常项目列表
+        if len(doc_list) == 0 or len(tech_check_list) == 0:
+            exception_check_project_set.add(project)
+        ## 回调函数，设置进度条
         if progress_callback is not None:
             progress_callback((i + 1) / len(project_dir))
     copy_filename_list = exception_doc_list + exception_xls_list + empty_xls_list
@@ -155,7 +164,7 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
                     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
                        "建设工程规划许可证号","更新时间","备注"],
                     exception_filename='放线异常的文件列表.txt',
-                    exception_check_dir = "异常的放线项目",
+                    exception_fang_dir = "异常的放线项目",
                     progress_callback=None):
     check_file(save_name, sheet_name=sheet_name)  
     if os.path.exists(exception_filename):
@@ -169,7 +178,7 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
     ws.title= sheet_name
     exp_count = 1
     project_fang_list = []
-    os.makedirs(exception_check_dir,exist_ok=True)  
+    os.makedirs(exception_fang_dir,exist_ok=True)  
     for i, excel_path in enumerate(excel_list):
         count = 0
         try:
@@ -181,6 +190,8 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
             
             copy_name = os.path.basename(os.path.dirname(excel_path)) + '-' + excel_path
             shutil.copy(excel_path, os.path.join(exp_dir, copy_name))
+            project_name = os.path.dirname(excel_path)
+            shutil.copytree(project_name, os.path.join(exception_fang_dir, os.path.basename(project_name)))
             count += 1
             continue
         ws.append(result)
