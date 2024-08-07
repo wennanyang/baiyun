@@ -3,40 +3,10 @@ import os
 import glob
 import shutil
 from openpyxl import load_workbook
-from openpyxl import Workbook
 from tqdm import tqdm
 import traceback
 import xlrd3 as xlrd
-import re
-import tkinter as tk
-from tkinter import filedialog
-import threading
-from tkinter import ttk
-def check_dir(dir):
-    dir = os.path.join('异常文件汇总', dir)
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-        return dir
-    shutil.rmtree(dir)
-    os.makedirs(dir)
-    return dir
-def check_file(file, sheet_name="放线数据汇总"):
-    file = os.path.join(os.getcwd(), file)
-    if os.path.exists(file):
-        os.remove(file)
-    wb = Workbook()
-    ws = wb.active
-    ws.title = sheet_name
-    wb.save(file)
-def find_match_files_recursion(parent_dir, re_pattern):
-    file_set = set()
-    file_list = []
-    for root, _, files in os.walk(parent_dir):
-        for file in files:
-            if re.match(re_pattern, file) is not None and file not in file_set:
-                file_set.add(file)
-                file_list.append(os.path.join(root, file))
-    return file_list
+from utils import check_dir, check_file, find_match_files_recursion, ignore_hidden_files
 def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收成果汇总表.xlsx",
                 title=["工程编号", "建筑结构", "建设单位", "建设项目名称", "建设位置", 	
                        "建设工程规划许可证号", "相关批文号", "放线案号", "建设规模", 
@@ -154,7 +124,10 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
         try:
             print(exception_check_dir)
             print(exception_check_project_set)
-            shutil.copytree(exception_project, os.path.join(exception_check_dir, os.path.basename(exception_project)))
+            shutil.copytree(exception_project, 
+                            os.path.join(exception_check_dir, os.path.basename(exception_project)),
+                            ignore=ignore_hidden_files,
+                            dirs_exist_ok=True)
         except Exception as e:
             print(e)   
     wb.save(save_name)
@@ -191,7 +164,10 @@ def make_fang_result(fang_dir, exp_dir="放线提取异常的xls",sheet_name="�
             copy_name = os.path.basename(os.path.dirname(excel_path)) + '-' + excel_path
             shutil.copy(excel_path, os.path.join(exp_dir, copy_name))
             project_name = os.path.dirname(excel_path)
-            shutil.copytree(project_name, os.path.join(exception_fang_dir, os.path.basename(project_name)))
+            shutil.copytree(project_name, 
+                            os.path.join(exception_fang_dir, os.path.basename(project_name)),
+                            ignore=ignore_hidden_files,
+                            dirs_exist_ok=True)
             count += 1
             continue
         ws.append(result)
@@ -325,97 +301,7 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
         validate_project(path_xls=validate_xls, project_fu_list=project_fu_list, 
                         project_fang_list=project_fang_list, 
                         filtered_file_name="放线验收缺失的项目列表.txt")
-class RedirectText:
-    def __init__(self, text_widget):
-        self.text_widget = text_widget
-
-    def write(self, string):
-        self.text_widget.insert(tk.END, string)
-        self.text_widget.see(tk.END)  # 自动滚动到最后一行
-
-    def flush(self):
-        pass  # 这个方法不需要做任何事情，但需要存在
-class GUI():
-    def __init__(self) -> None:
-        self.root = tk.Tk()
-        self.fang_var = tk.StringVar()
-        self.fu_var = tk.StringVar()
-        self.validate_var = tk.StringVar()
-        self.root.title("放线验收数据程序")
-        self.root.configure(bg="skyblue")
-        self.root.minsize(200, 200)  # width, height
-        self.root.maxsize(500, 500)
-        self.root.geometry("600x300+250+250")
-        fang_frame = tk.Frame(self.root, bg="#6FAFE7")
-        # 设置第一行放线路径的label, entry, button
-        fang_frame.grid(row=0, column=0, padx=10, pady=10, sticky='nsew')
-        fang_label = tk.Label(fang_frame, text="放线路径", bg="#6FAFE7")
-        fang_label.grid(row=0, column=0)
-        self.fang_entry = tk.Entry(fang_frame, bd=3, width=50, textvariable=self.fang_var)
-        self.fang_entry.grid(row=0, column=1)
-        choose_fang_dir = tk.Button(fang_frame, text="选择文件", 
-                                    command=lambda: self.select_directory(self.fang_var))
-        choose_fang_dir.grid(row=0, column=2)
-        # 设置第二行验收路径的label, entry, button
-        fu_frame = tk.Frame(self.root, bg="#6FAFE7")
-        fu_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
-        fu_lable = tk.Label(fu_frame, text="验收路径", bg="#6FAFE7")
-        fu_lable.grid(row=0, column=0)
-        self.fu_entry = tk.Entry(fu_frame, bd=3, width=50,textvariable=self.fu_var)
-        self.fu_entry.grid(row=0, column=1)
-        choose_fu_dir = tk.Button(fu_frame, text="选择目录", 
-                                  command=lambda: self.select_directory(self.fu_var))
-        choose_fu_dir.grid(row=0, column=2)
-        # 设置第三行的验证excel路径
-        validate_frame = tk.Frame(self.root, bg="#6FAFE7")
-        validate_frame.grid(row=2, column=0, padx=10, pady=10, sticky='nsew')
-        validate_lable = tk.Label(validate_frame, text="清单路径", bg="#6FAFE7")
-        validate_lable.grid(row=0, column=0)
-        self.validate_entry = tk.Entry(validate_frame, bd=3, width=50, textvariable=self.validate_var)
-        self.validate_entry.grid(row=0, column=1)
-        choose_validate = tk.Button(validate_frame, text="选择文件", 
-                                    command=lambda: self.select_file(self.validate_var))
-        choose_validate.grid(row=0, column=2)
-        # 设置第四行验收路径的label, entry, button
-        self.turn_on = tk.Button(self.root, text="开始执行", command=self.excute)
-        self.turn_on.grid(row=3)
-
-        ## 进度条
-        self.progress_var = tk.IntVar()
-        self.progressbar = ttk.Progressbar(self.root, orient="horizontal", length=300, mode="determinate", 
-                                              variable=self.progress_var)
-        self.progressbar.grid(row=4)
-    def mainloop(self):
-        self.root.mainloop()
-    def select_directory(self, stringvar):
-        directory = filedialog.askdirectory()
-        if directory:
-            stringvar.set(directory)
-    def select_file(self, stringvar):
-        # 打开文件选择对话框并获取文件路径
-        file_path = filedialog.askopenfilename(
-            title="选择一个xls文件",  # 对话框标题
-            filetypes=[("excel文件", "*.xls"), ("excel文件", "*.xlsx") ]  # 过滤文件类型
-        )
-        if file_path:
-            stringvar.set(file_path)
-    def excute(self):
-        print(self.fang_entry.get())
-        print(self.fu_entry.get())
-        print(self.validate_entry.get())
-        threading.Thread(target=self.long_running_task,args=(), daemon=True).start()
-    def update_progress(self, value):
-        self.progress_var.set(value)
-        self.root.update_idletasks() 
-    def long_running_task(self):
-        main(fang_dir=self.fang_entry.get(), 
-             fu_dir=self.fu_entry.get(), 
-             validate_xls=self.validate_entry.get(),
-             progress_callback=self.update_progress)
 if __name__ == '__main__':
-    # gui = GUI()
-    # gui.mainloop()
-    # file_list =  find_match_files_recursion(r'F:\2023复23B059',r"^[^~]*技术审查.*\.xls[x]?$")
-    # print(file_list)
-    make_fu_result(fu_dir=r"F:\验收")
+
+    make_fu_result(fu_dir=r"F:\专题库\原数据\验收")
 
