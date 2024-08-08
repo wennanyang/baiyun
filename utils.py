@@ -2,8 +2,8 @@ import os
 import shutil
 from openpyxl import Workbook
 import re
-def check_dir(dir):
-    dir = os.path.join('异常文件汇总', dir)
+def check_dir(dir, exp_basename='异常文件汇总'):
+    dir = os.path.join(exp_basename, dir)
     if not os.path.exists(dir):
         os.makedirs(dir)
         return dir

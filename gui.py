@@ -4,7 +4,7 @@ from tkinter import filedialog
 from tkinter import ttk
 from make_result import main
 from tkinter import messagebox
-
+import os
 class GUI():
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -73,7 +73,7 @@ class GUI():
     def select_directory(self, stringvar):
         directory = filedialog.askdirectory()
         if directory:
-            stringvar.set(directory)
+            stringvar.set(os.path.normpath(directory))
     def select_file(self, stringvar):
         # 打开文件选择对话框并获取文件路径
         file_path = filedialog.askopenfilename(
@@ -81,7 +81,7 @@ class GUI():
             filetypes=[("excel文件", "*.xls"), ("excel文件", "*.xlsx") ]  # 过滤文件类型
         )
         if file_path:
-            stringvar.set(file_path)
+            stringvar.set(os.path.normpath(file_path))
     def excute(self):
         self.thread.start()
     def update_progress(self, value, description):
@@ -98,15 +98,7 @@ class GUI():
     def on_success(self):
         self.description_var.set("")
         self.progress_var.set(0)
-        messagebox.showinfo("成功", "操作成功！")
-        
-        # callback_test(progress_callback=self.update_progress)
-# def callback_test(progress_callback=None):
-#     it = range(0, 200)
-#     for i in it:
-#         progress_callback((i + 1) / len(it) * 100, description="放线放线放线放线放线放线放线放线")
-#         time.sleep(1)
-        
+        messagebox.showinfo("成功", "提取属性成功！")     
 if __name__ == '__main__':
     gui = GUI()
     gui.mainloop()
