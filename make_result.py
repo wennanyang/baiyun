@@ -260,13 +260,13 @@ def get_buildings_high(tech_check):
     wb = xlrd.open_workbook(tech_check)
     if "验收" in wb.sheet_names():
         ws = wb.sheet_by_name("验收")
-        if ws.cell_value(27, 1) != None and "建筑高度" in str(ws.cell_value(26, 1)):
+        if "建筑高度" in str(ws.cell_value(26, 1)):
             building_high = str(ws.cell_value(26, 5))
-        elif ws.cell_value(27, 1) != None and "建筑高度" in str(ws.cell_value(26, 2)):
+        elif "建筑高度" in str(ws.cell_value(26, 2)):
             building_high = str(ws.cell_value(26, 6))
-        elif ws.cell_value(27, 1) != None and "建筑高度" in str(ws.cell_value(27, 1)):
+        elif "建筑高度" in str(ws.cell_value(27, 1)):
             building_high = str(ws.cell_value(27, 5))
-        elif ws.cell_value(27, 1) != None and "建筑高度" in str(ws.cell_value(27, 2)):
+        elif "建筑高度" in str(ws.cell_value(27, 2)):
             building_high = str(ws.cell_value(27, 6))
         print(ws.cell_value(27, 5))
     return building_high
