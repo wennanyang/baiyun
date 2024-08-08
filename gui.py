@@ -67,7 +67,6 @@ class GUI():
         self.pogress_label = tk.Label(progress_fram, text="进度", bg="#6FAFE7", textvariable=self.progress_lable_var)
         self.progressbar.grid(row=0, column=0)
         self.pogress_label.grid(row=0, column=1)
-        self.thread = threading.Thread(target=self.long_running_task,args=(), daemon=True)
     def mainloop(self):
         self.root.mainloop()
     def select_directory(self, stringvar):
@@ -83,7 +82,7 @@ class GUI():
         if file_path:
             stringvar.set(os.path.normpath(file_path))
     def excute(self):
-        self.thread.start()
+        threading.Thread(target=self.long_running_task,args=(), daemon=True).start()
     def update_progress(self, value, description):
         self.progress_var.set(value)
         self.progress_lable_var.set(f"{value : .2f}%")
@@ -94,11 +93,11 @@ class GUI():
              fu_dir=self.fu_entry.get(), 
              validate_xls=self.validate_entry.get(),
              progress_callback=self.update_progress)
-        self.on_success()
-    def on_success(self):
         self.description_var.set("")
         self.progress_var.set(0)
-        messagebox.showinfo("成功", "提取属性成功！")     
+        self.progress_lable_var.set("")
+        messagebox.showinfo("成功", "提取属性成功！") 
+    
 if __name__ == '__main__':
     gui = GUI()
     gui.mainloop()

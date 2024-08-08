@@ -45,3 +45,11 @@ Word
 1. Word表格格式错误，提取失败
 
 对于以上异常，会将异常的具体文件转复制到文件夹下，并将异常的项目复制
+## 打包命令
+```shell
+pip install pyinstaller
+pyinstaller -F -c -w -i .\cloud.ico gui.py --hidden-import openpyxl.cell._writer
+# 或者采用sepc文件
+pyinstaller .\gui.spec
+```
+

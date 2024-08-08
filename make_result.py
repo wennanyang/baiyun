@@ -5,7 +5,8 @@ import shutil
 from openpyxl import load_workbook
 import traceback
 import xlrd3 as xlrd
-from utils import check_dir, check_file, find_match_files_recursion, ignore_hidden_files
+import re
+from utils import check_dir, check_file, find_match_files_recursion, find_match_txt_recursion,ignore_hidden_files
 EXP_BASE_DIR = '异常文件汇总'
 os.makedirs(EXP_BASE_DIR, exist_ok=True)
 
@@ -138,40 +139,50 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     wb.save(save_name)
     return project_fu_list
 
-def make_fang_result(fang_dir, exp_dir_name="放线提取异常的xls",sheet_name="放线数据汇总", save_name= "放线数据汇总.xlsx",
+def make_fang_result(fang_dir, exp_dir_name="放线提取异常的txt",sheet_name="放线数据汇总", save_name= "放线数据汇总.xlsx",
                     progress_callback=None):
     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
-        "建设工程规划许可证号","更新时间","备注"],
-    exception_name='放线异常的文件列表.txt',
-    exception_fang_dir = "异常的放线项目",
-    
+        "放线依据", "用地许可证号", "更新时间","备注"]
+    exception_name='放线异常的文件列表.txt'
+    empty_name = "放线没有txt的项目.txt"
+    exception_fang_dir = "异常的放线项目"
     check_file(save_name, sheet_name=sheet_name) 
     exception_filename = os.path.join(EXP_BASE_DIR, exception_name) 
+    empty_filename = os.path.join(EXP_BASE_DIR, empty_name)
+    empty_txt_project = []
     if os.path.exists(exception_filename):
         os.remove(exception_filename)
-    excels = glob.glob(os.path.join(fang_dir, "*\\*放*.xls*"))
-    excel_list = [s for s in excels if not os.path.basename(s).startswith('~')]
+    project_fang_list = []
+    os.makedirs(exception_fang_dir, exist_ok=True)
+    exp_dir = check_dir(exp_dir_name) 
+    
+    # excels = glob.glob(os.path.join(fang_dir, "*\\*放*.xls*"))
+    # excel_list = [s for s in excels if not os.path.basename(s).startswith('~')]
+    project_list = glob.glob(os.path.join(fang_dir, "*")) 
     wb = load_workbook(save_name)
     ws = wb[sheet_name]
     ws.append(title)
     ws.title= sheet_name
     exp_count = 1
-    project_fang_list = []
-    os.makedirs(exception_fang_dir,exist_ok=True)  
-    exp_dir = check_dir(exp_dir_name)
-    for i, excel_path in enumerate(excel_list):
+    for i, project in enumerate(project_list):
         count = 0
+        txt_path = find_match_txt_recursion(project, r'.*\.(?i:txt)$')
+        if txt_path is None:
+            empty_txt_project.append(project)
+            continue
         try:
-            result = get_fang_result(excel_path=excel_path)
+            result = get_fang_result_from_txt(txt_path)
+            if result is None:
+                shutil.copy(txt_path, os.path.join(exp_dir, os.path.basename(txt_path)))
+                continue
         except Exception as e:
             with open(exception_filename, 'a', encoding='utf-8') as f:
-                f.write(f"{exp_count}'\t'{excel_path}'\n'{traceback.format_exc()}")
+                f.write(f"{exp_count}'\t'{txt_path}'\n'{traceback.format_exc()}")
                 exp_count+=1
-            
-            copy_name = os.path.basename(os.path.dirname(excel_path)) + '-' + excel_path
-            shutil.copy(excel_path, os.path.join(exp_dir, copy_name))
-            project_name = os.path.dirname(excel_path)
-            shutil.copytree(project_name, 
+            project_name = os.path.basename(project)
+            copy_name = project_name + '-' + os.path.basename(txt_path)
+            shutil.copy(txt_path, os.path.join(exp_dir, copy_name))
+            shutil.copytree(project, 
                             os.path.join(exception_fang_dir, os.path.basename(project_name)),
                             ignore=ignore_hidden_files,
                             dirs_exist_ok=True)
@@ -181,11 +192,29 @@ def make_fang_result(fang_dir, exp_dir_name="放线提取异常的xls",sheet_nam
         if count == 0:
             project_fang_list.append(result[0])
         if progress_callback is not None:
-            progress_callback(i / len(excel_list) * 100, description="正在提取放线属性")
+            progress_callback(i / len(project_list) * 100, description="正在提取放线属性")
 
     wb.save(save_name)
+    with open(empty_filename, 'w+', encoding='utf-8') as f:
+        for empty in empty_txt_project:
+            f.write(empty + '\n')
     return project_fang_list
-
+def suply_make_fang(dir):
+    txt_path_list = glob.glob(os.path.join(dir, "*"))
+    save_name = "放线数据汇总.xlsx"
+    wb = load_workbook(save_name)
+    ws = wb["放线数据汇总"]
+    for txt_path in txt_path_list:
+        try:
+            result = get_fang_result_from_txt(txt_path)
+            if result is None:
+                shutil.copy(txt_path, os.path.join('异常文件汇总\放线提取异常的txt', os.path.basename(txt_path)))
+                continue
+        except Exception as e:
+            print(e)
+        ws.append(result)
+    wb.save(save_name)
+    
 def get_fang_result(excel_path):
     result_list = [""] * 8
     wb = xlrd.open_workbook(excel_path)
@@ -196,7 +225,29 @@ def get_fang_result(excel_path):
         result_list[3] = sheet.cell_value(4, 1)
         result_list[4] = sheet.cell_value(3, 1)
     return result_list
+def get_fang_result_from_txt(txt_path):
+    result = [""] * 9
+    with open(txt_path, 'r', encoding='GBK') as f:
+        lines = f.readlines()
+    pattern = r'\d{4}[放F]\d{2}[A-Z]\d{3}'
+    for i in range(22, len(lines)):
+        project_name = lines[i].split(":")[-1].strip()
+        match = re.match(pattern=pattern, string=project_name)
+        if match is not None:
+            result[0] = project_name
+            break
+        if i == len(lines) - 1:
+            return None
+    
+    result[1] = ""
+    result[2] = lines[5].split(":")[-1].strip()
+    result[3] = lines[2].split(":")[-1].strip()
+    result[4] = lines[4].split(":")[-1].strip()
+    result[5] = lines[0].split(":")[-1].strip()
+    result[6] = lines[1].split(":")[-1].strip()
+    return result
 
+            
 def get_doc_result(doc_path):
     word = win32.Dispatch("Word.Application")
     word.visible = False
@@ -300,9 +351,4 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
                         project_fang_list=project_fang_list, 
                         filtered_name="放线验收缺失的项目列表.txt")
 if __name__ == '__main__':
-    # make_fu_result(fu_dir=r"F:\专题库\原数据\验收")
-    # main(fang_dir=r"F:\专题库\原数据\放线")
-    # result = get_doc_result(r'F:\小批量测试数据\验收测试\2021复23A069\成果汇总表(二)商业、住宅(自编号11#回迁安置房及地下室).doc')
-    # print(result)
-    high = get_buildings_high(r'E:\Code\baiyun\异常文件汇总\验收提取为空的xls\2016复23A003-技术审查照片.xls')
-    print(high)
+    suply_make_fang(r"F:\专题库\原数据\放线txt补充")
