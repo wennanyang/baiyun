@@ -1,10 +1,12 @@
 /build
 /dist
-/__pycache__
+/放线验收缺失的项目列表.txt
+/复制的文件名.txt
 /放线数据汇总.xlsx
 /验收成果汇总表.xlsx
 /异常的验收项目
 /异常的放线项目
 /异常文件汇总
+/__pycache__
 log.txt
 没有txt的放线项目.txt

@@ -1,0 +1,1 @@
+pyinstaller -F -c -w -i .\ico.ico  gui.py --hidden-import openpyxl.cell._writer
