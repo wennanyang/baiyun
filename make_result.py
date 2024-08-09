@@ -6,11 +6,12 @@ from openpyxl import load_workbook
 import traceback
 import xlrd3 as xlrd
 import re
+from pathlib import Path
 from utils import check_dir, check_file, find_match_files_recursion, find_match_txt_recursion,ignore_hidden_files
-EXP_BASE_DIR = '异常文件汇总'
-os.makedirs(EXP_BASE_DIR, exist_ok=True)
+EXP_BASE_DIR = Path('异常文件汇总')
+EXP_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
-def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收成果汇总表.xlsx",
+def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name= "验收成果汇总表.xlsx",
                 exception_check_dir = "异常的验收项目",
                 progress_callback=None):
     
@@ -25,10 +26,10 @@ def make_fu_result(fu_dir, sheet_name="验收成果汇总", save_name= "验收�
     exp_doc_name="验收提取异常的doc"
     exp_xls_name="验收提取异常的xls"
     empty_xls_name="验收提取为空的xls"
-    check_file(save_name, sheet_name=sheet_name)
-    log_filename = os.path.join(EXP_BASE_DIR, log_name)
-    if os.path.exists(log_filename):
-        os.remove(log_filename)
+    check_file(Path(save_name), sheet_name=sheet_name)
+    log_filename = EXP_BASE_DIR.joinpath(log_name)
+    if log_filename.exists():
+        log_filename.unlink()
     copy_filename = os.path.join(EXP_BASE_DIR, copy_name)
     if os.path.exists(copy_filename):
         os.remove(copy_filename)
@@ -351,4 +352,5 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
                         project_fang_list=project_fang_list, 
                         filtered_name="放线验收缺失的项目列表.txt")
 if __name__ == '__main__':
-    suply_make_fang(r"F:\专题库\原数据\放线txt补充")
+    # suply_make_fang(r"F:\专题库\原数据\放线txt补充")
+    print(Path(r"异常文件汇总\log.txt").unlink())
