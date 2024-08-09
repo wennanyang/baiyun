@@ -4,7 +4,7 @@ from tkinter import filedialog
 from tkinter import ttk
 from make_result import main
 from tkinter import messagebox
-import os
+from pathlib import Path
 class GUI():
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -70,9 +70,9 @@ class GUI():
     def mainloop(self):
         self.root.mainloop()
     def select_directory(self, stringvar):
-        directory = filedialog.askdirectory()
+        directory = Path(filedialog.askdirectory()).resolve()
         if directory:
-            stringvar.set(os.path.normpath(directory))
+            stringvar.set(directory)
     def select_file(self, stringvar):
         # 打开文件选择对话框并获取文件路径
         file_path = filedialog.askopenfilename(
@@ -80,7 +80,7 @@ class GUI():
             filetypes=[("excel文件", "*.xls"), ("excel文件", "*.xlsx") ]  # 过滤文件类型
         )
         if file_path:
-            stringvar.set(os.path.normpath(file_path))
+            stringvar.set(Path(file_path).resolve())
     def excute(self):
         threading.Thread(target=self.long_running_task,args=(), daemon=True).start()
     def update_progress(self, value, description):

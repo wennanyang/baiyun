@@ -1,10 +1,9 @@
-import os
 import shutil
 from openpyxl import Workbook
 import re
 from pathlib import Path
-def check_dir(dir : Path, exp_basename='异常文件汇总') -> Path:
-    dir = dir.joinpath(exp_basename)
+def check_dir(dir : Path, exp_basename=Path('异常文件汇总')) -> Path:
+    dir = exp_basename.joinpath(dir)
     if not dir.exists():
         dir.mkdir(parents=True)
         return dir
@@ -26,13 +25,13 @@ def find_match_files_recursion(parent_dir : Path, re_pattern : str, suffix="doc"
         # print(file)
         if re.match(re_pattern, file.name) is not None and file not in file_set:
             file_set.add(file)
-            file_list.append(file)
+            file_list.append(file.resolve())
     return file_list
 def find_match_txt_recursion(parent_dir : Path, re_pattern) -> Path:
     files = parent_dir.rglob("*.txt")
     for file in files:
-            if re.match(re_pattern, file) is not None:
-                return file
+            if re.match(re_pattern, file.name) is not None:
+                return file.resolve()
     return None
 def ignore_hidden_files(src, names):
     """忽略隐藏文件和目录"""
