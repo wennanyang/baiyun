@@ -257,7 +257,17 @@ def get_doc_result(doc_path):
     result_list = [""] * 21
     table1 = doc.Tables(1)
     # 0 工程编号
-    result_list[0] = os.path.basename(os.path.dirname(doc_path))
+    pattern = r'\d{4}复\d{2}[A-Z]\d{3}'
+    if re.match(pattern, os.path.basename(os.path.dirname(doc_path))):
+        result_list[0] = os.path.basename(os.path.dirname(doc_path))
+    # elif re.match(pattern, table1.Cell(Row=9, Column=2).Range.Text) :
+    #     r
+    else: 
+        match = re.search(pattern, doc_path)
+        if match is not None:
+            result_list[0] = match.group(0)
+        else :
+            result_list[0] = doc_path
     # 1 建筑结构
     result_list[1] = ""
     # 2 建设单位
@@ -319,19 +329,24 @@ def get_buildings_high(tech_check):
             building_high = str(ws.cell_value(27, 5))
         elif "建筑高度" in str(ws.cell_value(27, 2)):
             building_high = str(ws.cell_value(27, 6))
-        print(ws.cell_value(27, 5))
     return building_high
 
-def validate_project(path_xls, project_fang_list, project_fu_list, filtered_name):
+def validate_project(path_xls, fang_xls_path, fu_xls_path, filtered_name):
     filtered_filename = os.path.join(EXP_BASE_DIR, filtered_name)
-    project_list_total = []
-    project_list = project_fang_list + project_fu_list
-    wb = xlrd.open_workbook(path_xls)
-    sheet = wb.sheet_by_index(0)
-    column_index = 2
-    for row in range(1, sheet.nrows):
-        project_list_total.append(sheet.cell_value(row, column_index))
-    filtered = [item for item in project_list_total if item not in project_list]
+    wb_fang = load_workbook(fang_xls_path)
+    ws_fang = wb_fang.worksheets[0]
+    wb_fu = load_workbook(fu_xls_path)
+    ws_fu = wb_fu.worksheets[0]
+    project_fang = ws_fang.iter_rows(min_row=1, max_row=ws_fang.max_row, min_col=1, max_col=1, values_only=True)
+    project_fu = ws_fu.iter_rows(min_row=1, max_row=ws_fu.max_row, min_col=1, max_col=1, values_only=True)
+    project_list = project_fang + project_fu
+    wb_validate = load_workbook(path_xls)
+    ws_validate = wb_validate.worksheets[0]
+    project_total = ws_validate.iter_rows(min_row=1, max_row=ws_validate.max_row, min_col=1, max_col=1, values_only=True)
+    # column_index = 2
+    # for row in range(1, sheet.nrows):
+    #     project_list_total.append(sheet.cell_value(row, column_index))
+    filtered = [item for item in project_total if item not in project_list]
     if (len(filtered) > 0) : 
         with open(filtered_filename, 'w+', encoding='utf-8') as f:
             for item in filtered:
@@ -351,4 +366,15 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
                         project_fang_list=project_fang_list, 
                         filtered_name="放线验收缺失的项目列表.txt")
 if __name__ == '__main__':
-    suply_make_fang(r"F:\专题库\原数据\放线txt补充")
+    # suply_make_fang(r"F:\专题库\原数据\放线txt补充")
+    pattern = r'\d{4}复\d{2}[A-Z]\d{3}'
+    path = r"F:\专题库\原数据\验收\2023复23B168\成果汇总表\成果汇总表_9.doc"
+    print(path)
+    match = re.search(pattern=pattern, string=path)
+    if match is not None:
+            # 获取整个匹配的字符串
+        full_match = match.group(0)
+        print(match.string)
+        print("Full match:", full_match)
+    else :
+        print("No match found")
