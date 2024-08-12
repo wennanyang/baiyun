@@ -52,7 +52,7 @@ TXT
 ## 打包命令
 ```shell
 pip install pyinstaller
-pyinstaller -F -c -w -i .\cloud.ico gui.py --hidden-import openpyxl.cell._writer
+pyinstaller -F -c -w -i .ico\cloud.ico gui.py --hidden-import openpyxl.cell._writer
 # 或者采用sepc文件
 pyinstaller .\gui.spec
 ```

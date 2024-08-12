@@ -6,6 +6,7 @@ import xlrd3 as xlrd
 import re
 from pathlib import Path
 from utils import check_dir, check_file, find_match_files_recursion, find_match_txt_recursion,ignore_hidden_files
+from utils import validate_building_high
 EXP_BASE_DIR = Path('异常文件汇总')
 EXP_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -83,6 +84,12 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
                 continue
 
             result[18] = buildings_high
+            match = validate_building_high(result[3], result[18])
+            if match is not None:
+                result[18] = match
+            else :
+                result[18] = buildings_high
+                result[20] = '未匹配到'
             ws.append(result)
         ## 如果审查或者成果表都为0，说明出现问题了，加入异常项目列表
         if len(doc_list) == 0 and len(tech_check_list) == 0:
@@ -358,8 +365,15 @@ if __name__ == '__main__':
     #     print("Full match:", full_match)
     # else :
     #     print("No match found")
-    wb_validate = load_workbook(r"验收成果汇总表.xlsx")
-    ws_validate = wb_validate.worksheets[0]
-    project_total = list(ws_validate.iter_rows(min_row=1, max_row=ws_validate.max_row, 
-                                          min_col=1, max_col=1, values_only=True))
-    print(type(project_total[0]), project_total[0])
+    path = r'验收成果汇总表.xlsx'
+    wb = load_workbook(path)
+    ws = wb.worksheets[0]
+    for i in range(2, ws.max_row + 1):
+        construct_project = ws.cell(row=i, column=4).value
+        buildings_high = ws.cell(row=i, column=19).value
+        match = validate_building_high(construct_project, buildings_high)   
+        if match is not None:  
+            ws.cell(row=i, column=20).value = match
+        else :
+            ws.cell(row=i, column=20).value = "未匹配到"
+    wb.save(path)
