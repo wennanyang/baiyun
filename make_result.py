@@ -45,9 +45,10 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
     exp_count = 0
     tech_check_re = r"^[^~]*技术审查.*\.xls[x]?$"
     achieve_re = r'^[^~]*成果.*\.doc'
-    for i , project in enumerate(project_dir):
+    for i, project in enumerate(project_dir):
         project = project.resolve()
-        tech_check_list = find_match_files_recursion(Path(project), tech_check_re)
+        tech_check_list = find_match_files_recursion(Path(project), tech_check_re,
+                                                     suffix="*.xls*")
         buildings_high = ""
         for tech_check in tech_check_list:
             try:
@@ -63,7 +64,6 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
                 with open(log_filename, 'a', encoding='utf-8') as f:
                     f.write(f"{exp_count}'\t'{tech_check}'\n'{traceback.format_exc()}'\n'")
                     exp_count += 1
-                count += 1
                 ## 将异常的文件挪出来
                 exception_check_project_set.add(project)
                 exception_xls_list.append(tech_check)
@@ -85,7 +85,7 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
             result[18] = buildings_high
             ws.append(result)
         ## 如果审查或者成果表都为0，说明出现问题了，加入异常项目列表
-        if len(doc_list) == 0 or len(tech_check_list) == 0:
+        if len(doc_list) == 0 and len(tech_check_list) == 0:
             exception_check_project_set.add(project)
         ## 回调函数，设置进度条
         if progress_callback is not None:
@@ -303,7 +303,6 @@ def get_buildings_high(tech_check : Path):
             building_high = str(ws.cell_value(27, 5))
         elif "建筑高度" in str(ws.cell_value(27, 2)):
             building_high = str(ws.cell_value(27, 6))
-        print(ws.cell_value(27, 5))
     return building_high
 
 def validate_project(path_xls, project_fang_list, project_fu_list, filtered_name):
@@ -336,6 +335,10 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
 if __name__ == '__main__':
     # suply_make_fang(r"F:\专题库\原数据\放线txt补充")
     # print(Path(r"异常文件汇总\log.txt"))
-    fu_dir = r"F:\小批量测试数据\验收测试"
-    main(fu_dir=fu_dir)
+    # fu_dir = r"F:\小批量测试数据\验收测试"
+    # main(fu_dir=fu_dir)
     # print(type(Path(fu_dir).joinpath("name").resolve()))
+    files = find_match_files_recursion(Path(r"F:\小批量测试数据\验收测试\2016复23A004"),
+                                        re_pattern=r"^[^~]*技术审查.*\.xls[x]?$",
+                                        suffix="xls*")
+    print(files)

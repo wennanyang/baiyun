@@ -17,10 +17,10 @@ def check_file(file : Path, sheet_name="放线数据汇总"):
     ws = wb.active
     ws.title = sheet_name
     wb.save(file)
-def find_match_files_recursion(parent_dir : Path, re_pattern : str, suffix="doc"):
+def find_match_files_recursion(parent_dir : Path, re_pattern : str, suffix="*.doc*"):
     file_set = set()
     file_list = []
-    files = parent_dir.rglob("*.doc")
+    files = parent_dir.rglob(suffix)
     for file in files:
         # print(file)
         if re.match(re_pattern, file.name) is not None and file not in file_set:
