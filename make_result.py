@@ -137,7 +137,7 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
             continue  
     wb.save(save_name)
 
-def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sheet_name="放线数据汇总",
+def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sheet_name="放线数据汇总表",
                      save_name=Path("放线数据汇总.xlsx"),progress_callback=None):
     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
         "放线依据", "用地许可证号", "更新时间","备注"]
@@ -324,7 +324,12 @@ def get_buildings_high(tech_check : Path):
 
 def validate_project(path_xls, fang_xls_path, fu_xls_path, filtered_name, progress_callback=None):
     filtered_filename = EXP_BASE_DIR.joinpath(filtered_name)
-
+    if not Path(fang_xls_path).exists():
+        progress_callback(0, description="放线数据汇总表.xlsx 不存在!")
+        return
+    if not Path(fu_xls_path).exists():
+        progress_callback(0, description="验收成果汇总表.xlsx 不存在!")
+        return
     wb_validate = xlrd.open_workbook(path_xls)
     ws_validate = wb_validate.sheet_by_index(0)
     project_list_total = [str(ws_validate.cell_value(i, 2)) for i in range(1, ws_validate.nrows)]
@@ -349,7 +354,7 @@ def main(fang_dir=None, fu_dir=None, validate_xls=None, progress_callback=None, 
         make_fu_result(fu_dir=Path(fu_dir),progress_callback=progress_callback)
     if validate_xls is not None and validate_xls != "" :
         validate_project(path_xls=validate_xls,fu_xls_path="验收成果汇总表.xlsx", 
-                         fang_xls_path="放线数据汇总.xlsx",
+                         fang_xls_path="放线数据汇总表.xlsx",
                         filtered_name="放线验收缺失的项目列表.txt",
                         progress_callback=progress_callback)
 
