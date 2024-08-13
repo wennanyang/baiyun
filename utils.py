@@ -23,9 +23,9 @@ def find_match_files_recursion(parent_dir : Path, re_pattern : str, suffix="*.do
     file_list = []
     files = parent_dir.rglob(suffix)
     for file in files:
-        # print(file)
-        if re.match(re_pattern, file.name) is not None and file not in file_set:
-            file_set.add(file)
+        print(file)
+        if re.match(re_pattern, file.name) is not None and file.name not in file_set:
+            file_set.add(file.name)
             file_list.append(file.resolve())
     return file_list
 def find_match_txt_recursion(parent_dir : Path, re_pattern) -> Path:
