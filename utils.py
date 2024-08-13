@@ -70,14 +70,13 @@ def validate_building_high(construct_project, buildings_high) -> str:
                     return number_pattern.search(building_high).group()
                 else :
                     return None
-        elif number_sign.search(building_high) is not None:
-            self_code = number_sign.search(construct_project)
+        elif number_sign.search(construct_project) is not None:
+            self_code = number_sign.search(construct_project).group()
             if self_code in building_high:
                 if number_pattern.search(building_high) is not None:
-                    if number_pattern.search(building_high) is not None:
-                        return number_pattern.search(building_high).group()
-                    else :
-                        return None
+                    return number_pattern.search(building_high).group()
+                else :
+                    return None
     return None
 if __name__ == '__main__':
     from openpyxl import load_workbook

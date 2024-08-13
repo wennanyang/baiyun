@@ -48,6 +48,10 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
     achieve_re = r'^[^~]*成果.*\.doc'
     for i, project in enumerate(project_dir):
         project = project.resolve()
+        if progress_callback is not None:
+            progress_callback((i + 1) / len(project_dir) * 100, 
+                              description=f"正在提取验收属性:{project.name}")
+        print(f"{i}/{len(project_dir)}:\t {project.name}")
         tech_check_list = find_match_files_recursion(Path(project), tech_check_re,
                                                      suffix="*.xls*")
         buildings_high = ""
@@ -95,9 +99,6 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
         if len(doc_list) == 0 and len(tech_check_list) == 0:
             exception_check_project_set.add(project)
         ## 回调函数，设置进度条
-        if progress_callback is not None:
-            progress_callback((i + 1) / len(project_dir) * 100, 
-                              description="正在提取验收属性")
     copy_filename_list = exception_doc_list + exception_xls_list + empty_xls_list
     if len(copy_filename_list) > 0:
         with open(copy_filename, 'w+') as f:
@@ -158,6 +159,9 @@ def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sh
     ws.title= sheet_name
     exp_count = 1
     for i, project in enumerate(project_list):
+        if progress_callback is not None:
+            progress_callback(i / len(project_list) * 100, 
+                              description=f"正在提取放线属性:{project.name}")
         project = project.resolve()
         txt_path = find_match_txt_recursion(project, r'.*\.(?i:txt)$')
         if txt_path is None:
@@ -181,9 +185,6 @@ def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sh
                             dirs_exist_ok=True)
             continue
         ws.append(result)
-        if progress_callback is not None:
-            progress_callback(i / len(project_list) * 100, description="正在提取放线属性")
-
     wb.save(save_name)
     with open(empty_filename, 'w+', encoding='utf-8') as f:
         for empty in empty_txt_project:
@@ -253,9 +254,9 @@ def get_doc_result(doc_path : Path):
     # elif re.match(pattern, table1.Cell(Row=9, Column=2).Range.Text) :
     #     r
     else: 
-        match = re.search(pattern, doc_path)
+        match = re.search(pattern, str(doc_path))
         if match is not None:
-            result_list[0] = match.group(0)
+            result_list[0] = match.group()
         else :
             result_list[0] = doc_path
     # 1 建筑结构
@@ -365,15 +366,5 @@ if __name__ == '__main__':
     #     print("Full match:", full_match)
     # else :
     #     print("No match found")
-    path = r'验收成果汇总表.xlsx'
-    wb = load_workbook(path)
-    ws = wb.worksheets[0]
-    for i in range(2, ws.max_row + 1):
-        construct_project = ws.cell(row=i, column=4).value
-        buildings_high = ws.cell(row=i, column=19).value
-        match = validate_building_high(construct_project, buildings_high)   
-        if match is not None:  
-            ws.cell(row=i, column=20).value = match
-        else :
-            ws.cell(row=i, column=20).value = "未匹配到"
-    wb.save(path)
+    path = r"F:\异常测试"
+    main(fu_dir=path)
