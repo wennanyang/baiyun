@@ -138,7 +138,7 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
     wb.save(save_name)
 
 def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sheet_name="放线数据汇总表",
-                     save_name=Path("放线数据汇总.xlsx"),progress_callback=None):
+                     save_name=Path("放线数据汇总表.xlsx"),progress_callback=None):
     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
         "放线依据", "用地许可证号", "更新时间","备注"]
     exception_name='放线异常的文件列表.txt'
@@ -216,14 +216,16 @@ def get_fang_result(excel_path):
         result_list[3] = sheet.cell_value(4, 1)
         result_list[4] = sheet.cell_value(3, 1)
     return result_list
-def get_fang_result_from_txt(txt_path):
+def get_fang_result_from_txt(txt_path : Path):
     result = [""] * 9
     with open(txt_path, 'r', encoding='GBK') as f:
         lines = f.readlines()
-    pattern = r'\d{4}[放F]\d{2}[A-Z]\d{3}'
+    pattern = re.compile(r'\d{4}[放F]\d{2}[A-Z]\d{3}')
+    # if pattern.match(txt_path.parent.name):
+    #     result[0] = txt_path.parent.name
     for i in range(22, len(lines)):
         project_name = lines[i].split(":")[-1].strip()
-        match = re.match(pattern=pattern, string=project_name)
+        match = pattern.match(string=project_name)
         if match is not None:
             result[0] = project_name
             break
@@ -286,7 +288,7 @@ def get_doc_result(doc_path : Path):
     result_list[12] = table2.Cell(Row=2, Column=5).Range.Text
     # 13 地上面积
     result_list[13] = table2.Cell(Row=3, Column=6).Range.Text
-    # 14地下面积
+    # 14 地下面积
     result_list[14] = table2.Cell(Row=4, Column=6).Range.Text
     # 15 地上层数
     result_list[15] = table2.Cell(Row=5, Column=5).Range.Text
@@ -300,7 +302,7 @@ def get_doc_result(doc_path : Path):
     result_list[18] = "" 
     # 19 更新时间
     result_list[19] = ""
-    # 20备注
+    # 20 备注
     result_list[20] = ""
 
     result = [s.replace('\r', '').replace('\x07', '') for s in result_list]

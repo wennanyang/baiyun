@@ -79,20 +79,12 @@ def validate_building_high(construct_project, buildings_high) -> str:
                     return None
     return None
 if __name__ == '__main__':
-    from openpyxl import load_workbook
-    path = r'验收成果汇总表.xlsx'
-    wb = load_workbook(path)
-    ws = wb.worksheets[0]
-    row = 32
-    construct_project = "公共租赁住宅（自编号嘉禾联边保障住房项目-A1）"
-    buildings_high = '''公租住宅(自编号A1-A2）:
-81.80
-公租住宅(自编号A3-A4):
-87.43"
-'''
-    match = validate_building_high(construct_project, buildings_high)  
-    print(match) 
-    if match is not None:  
-        ws.cell(row=row, column=20).value = match
-    else :
-        ws.cell(row=row, column=20).value = "未匹配到"
+    path = Path(r"F:\专题库\原数据\放线txt补充")
+    dest = Path(r"F:\专题库\原数据\放线补充")
+    if not dest.exists():
+        dest.mkdir(parents=True, exist_ok=True)
+    files = path.glob("*.txt")
+    for file in files:
+        print(file.name.split(".")[0])
+        dest.joinpath(file.name.split(".")[0]).mkdir(parents=True, exist_ok=True)
+        shutil.copy(file, dest.joinpath(file.name.split(".")[0]).joinpath(file.name))
