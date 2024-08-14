@@ -123,7 +123,7 @@
 
 ## 打包命令
 ```shell
-pip install pyinstaller
+pip install pyinstaller=5.13
 pyinstaller -F -c -w -i .ico\cloud.ico gui.py --hidden-import openpyxl.cell._writer
 # 或者采用sepc文件
 pyinstaller .\gui.spec
