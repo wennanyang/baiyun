@@ -8,7 +8,7 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('E:\\Code\\baiyun\\ico', 'ico')],
     hiddenimports=['openpyxl.cell._writer'],
     hookspath=[],
     hooksconfig={},

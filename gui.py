@@ -5,6 +5,7 @@ from tkinter import ttk
 from make_result import main
 from tkinter import messagebox
 from pathlib import Path
+import sys
 class GUI():
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -17,6 +18,7 @@ class GUI():
         self.root.minsize(200, 200)  # width, height
         self.root.maxsize(500, 500)
         self.root.geometry("600x300+250+250")
+        self.root.iconbitmap(self.resource_path(r"ico\cloud.ico"))
         fang_frame = tk.Frame(self.root, bg="#6FAFE7")
         # 设置第一行放线路径的label, entry, button
         fang_frame.grid(row=0, column=0, padx=10, pady=10, sticky='nsew')
@@ -67,6 +69,13 @@ class GUI():
         self.pogress_label = tk.Label(progress_fram, text="进度", bg="#6FAFE7", textvariable=self.progress_lable_var)
         self.progressbar.grid(row=0, column=0)
         self.pogress_label.grid(row=0, column=1)
+    def resource_path(self, relative_path) -> Path:
+        """将相对路径转为exe运行时资源文件的绝对路径"""
+        if hasattr(sys, '_MEIPASS'):
+            base_path = Path(sys._MEIPASS)  # 只有通过exe运行时才会进入这个分支，它返回的是exe运行时的临时目录路径
+        else:
+            base_path = Path(".")
+        return base_path.resolve().joinpath(relative_path) 
     def mainloop(self):
         self.root.mainloop()
     def select_directory(self, stringvar):
