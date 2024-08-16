@@ -20,7 +20,7 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
         "主要功能", "建筑高度(m)", "更新时间", "备注"]
     exception_check_dir.mkdir(parents=True, exist_ok=True)
     copy_name = "复制的文件名.txt"
-    log_name='log.txt'
+    log_name='log_fu.txt'
     exp_doc_name="验收提取异常的doc"
     exp_xls_name="验收提取异常的xls"
     empty_xls_name="验收提取为空的xls"
@@ -141,16 +141,18 @@ def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sh
                      save_name=Path("放线数据汇总表.xlsx"),progress_callback=None):
     title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
         "放线依据", "用地许可证号", "更新时间","备注"]
-    exception_name='放线异常的文件列表.txt'
+    exception_name='log_fang.txt'
     empty_name = "放线没有txt的项目.txt"
-    exception_fang_dir = Path("异常的放线项目")
-    check_file(save_name, sheet_name=sheet_name) 
     exception_filename = EXP_BASE_DIR.joinpath(exception_name) 
     empty_filename = EXP_BASE_DIR.joinpath(empty_name)
     empty_txt_project = []
     if exception_filename.exists():
         exception_filename.unlink()
+    ## 把放线异常的项目copy的文件夹和对应的列表
+    exception_fang_dir = Path("异常的放线项目")
     exception_fang_dir.mkdir(parents=True, exist_ok=True)
+    exception_fang_project = []
+    check_file(save_name, sheet_name=sheet_name) 
     exp_dir = check_dir(exp_dir_name) 
     project_list = list(fang_dir.glob("*"))
     wb = load_workbook(save_name)
@@ -160,35 +162,44 @@ def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sh
     exp_count = 1
     for i, project in enumerate(project_list):
         if progress_callback is not None:
-            progress_callback(i / len(project_list) * 100, 
+            progress_callback((i + 1) / len(project_list) * 100, 
                               description=f"正在提取放线属性:{project.name}")
         project = project.resolve()
         txt_path = find_match_txt_recursion(project, r'.*\.(?i:txt)$')
         if txt_path is None:
             empty_txt_project.append(project)
+            exception_fang_project.append(project)
             continue
         try:
             result = get_fang_result_from_txt(txt_path)
             if result is None:
                 shutil.copy(txt_path, exp_dir.joinpath((txt_path.name)))
+                exception_fang_project.append(project)
                 continue
         except Exception as e:
             with open(exception_filename, 'a', encoding='utf-8') as f:
-                f.write(f"{exp_count}'\t'{txt_path}'\n'{traceback.format_exc()}")
+                f.write(f"{exp_count}'\t'{txt_path}'\n'{traceback.format_exc()}'\n'")
                 exp_count+=1
-            
             copy_name = project.name + '-' + txt_path.name
             shutil.copy(txt_path, exp_dir.joinpath(copy_name))
-            shutil.copytree(project, 
-                            exception_fang_dir.joinpath(project.name),
-                            ignore=ignore_hidden_files,
-                            dirs_exist_ok=True)
+            exception_fang_project.append(project)
             continue
         ws.append(result)
     wb.save(save_name)
+    ## 写入提取为空的txt文件名
     with open(empty_filename, 'w+', encoding='utf-8') as f:
         for empty in empty_txt_project:
             f.write(str(empty) + '\n')
+    ## 复制异常的项目
+    for exp_project in exception_fang_project :
+        try :
+            shutil.copytree(exp_project, 
+                exception_fang_dir.joinpath(exp_project.name),
+                ignore=ignore_hidden_files,
+                dirs_exist_ok=True)
+        except Exception as e :
+            print(e)
+            continue
 
 def suply_make_fang(dir : Path):
     txt_path_list = dir.glob("*")
@@ -325,7 +336,7 @@ def get_buildings_high(tech_check : Path):
     return building_high
 
 def validate_project(path_xls, fang_xls_path, fu_xls_path, filtered_name, progress_callback=None):
-    filtered_filename = EXP_BASE_DIR.joinpath(filtered_name)
+    filtered_filename = filtered_name
     if not Path(fang_xls_path).exists():
         progress_callback(0, description="放线数据汇总表.xlsx 不存在!")
         return
@@ -373,6 +384,7 @@ if __name__ == '__main__':
     #     print("Full match:", full_match)
     # else :
     #     print("No match found")
-    path = r"F:\异常测试"
-    main(fu_dir=path)
+    path = Path(r"E:\中南")
+    pathlist = path.glob("*")
+    print(list(pathlist))
     # print("1.成果汇总表（厂房(自编号初期雨水及事故水池)）" == "1.成果汇总表（厂房(自编号初期雨水及事故水池)）")
