@@ -139,7 +139,7 @@ def make_fu_result(fu_dir : Path, sheet_name="验收成果汇总", save_name=Pat
 
 def make_fang_result(fang_dir : Path, exp_dir_name="放线提取异常的txt",sheet_name="放线数据汇总表",
                      save_name=Path("放线数据汇总表.xlsx"),progress_callback=None):
-    title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置",
+    title=["工程编号","建筑结构","建设单位","建设项目名称","建设位置", "建设规模",
         "放线依据", "用地许可证号", "更新时间","备注"]
     exception_name='log_fang.txt'
     empty_name = "放线没有txt的项目.txt"
@@ -228,7 +228,9 @@ def get_fang_result(excel_path):
         result_list[4] = sheet.cell_value(3, 1)
     return result_list
 def get_fang_result_from_txt(txt_path : Path):
-    result = [""] * 9
+    # "工程编号","建筑结构","建设单位","建设项目名称","建设位置", "建设规模",
+    #     "放线依据", "用地许可证号", "更新时间","备注"
+    result = [""] * 10
     with open(txt_path, 'r', encoding='GBK') as f:
         lines = f.readlines()
     pattern = re.compile(r'\d{4}[放F]\d{2}[A-Z]\d{3}')
@@ -247,8 +249,9 @@ def get_fang_result_from_txt(txt_path : Path):
     result[2] = lines[5].split(":")[-1].strip()
     result[3] = lines[2].split(":")[-1].strip()
     result[4] = lines[4].split(":")[-1].strip()
-    result[5] = lines[0].split(":")[-1].strip()
-    result[6] = lines[1].split(":")[-1].strip()
+    result[5] = lines[3].split(":")[-1].strip()
+    result[6] = lines[0].split(":")[-1].strip()
+    result[7] = lines[1].split(":")[-1].strip()
     return result
 
             
