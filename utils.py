@@ -2,7 +2,6 @@ import shutil
 from openpyxl import Workbook
 import re
 from pathlib import Path
-import xlrd3 as xlrd
 def check_dir(dir : Path, exp_basename=Path('异常文件汇总')) -> Path:
     dir = exp_basename.joinpath(dir)
     if not dir.exists():
